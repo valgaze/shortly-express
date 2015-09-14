@@ -83,7 +83,7 @@ var xbeforeEach = function(){};
           done();
         });
       });
-    });
+    // });
 
     it('Only shortens valid urls, returning a 404 - Not found for invalid urls', function(done) {
       var options = {
