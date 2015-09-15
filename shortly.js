@@ -13,6 +13,8 @@ var Click = require('./app/models/click');
 var User = require('./app/models/user');
 var Users = require('./app/collections/users');
 var session = require('express-session');
+var crypto = require('crypto');
+
 
 var app = express();
 app.set('views', __dirname + '/views');
@@ -40,20 +42,32 @@ function restrict(req, res, next) {
   }
 }
 
-function authenticate(username, password, fn) {
+function authenticate(username, password, successCallback, errorCallback) {
   new User({username: username}).fetch().then(function(found) {
     if (found) {
       console.log("Terrific that user exists with this info:", found.attributes);
-        if (password === found.attributes.password){
-          fn(found);
+        var hashedPassword = hasher(password);
+
+        console.log("\n\n\n***hashedPw:", hashedPassword);
+        console.log("\n\n\n***Pw in database:", found.attributes.password);
+
+        if (hashedPassword === found.attributes.password){
+          successCallback(found);
         }else{
-          res.send(200, "Sorry the passwords don't match");
+          errorCallback("Sorry, the passwords don't match");
         }
     } else {
-      res.send(200,"Sorry, that is not a valid username");
+        errorCallback("Sorry, that is not a valid username");
     }
   });
 }
+
+function hasher(input){
+  var shasum = crypto.createHash('sha1');
+  shasum.update(input);
+  return shasum.digest('hex');
+}
+
 
 app.get('/', restrict,
 function(req, res) {
@@ -123,11 +137,10 @@ authenticate(req.body.username, req.body.password, function(user){
         res.redirect('/');
       });
     } else {
-      req.session.error = 'Authentication failed, please check your '
-        + ' username and password.'
-        + ' (use "tj" and "foobar")';
-      res.redirect('/login');
+      res.send(200, "Correct password, user exists, but some error with sessions");
     }
+  }, function(errorDesc){
+    res.send(200, errorDesc);
   });
 
 });
@@ -145,14 +158,26 @@ app.post('/signup',
       console.log("THIS USER ALREADY EXISTS!!", found.attributes);
       res.send(200, "Sorry, that username is already taken. Please try a different one.");
     } else {
-     Users.create({
+      var hashedPassword = hasher(password);
+      Users.create({
         username: username,
-        password: password,
+        password: hashedPassword,
       })
       .then(function(newUser) {
+
+          req.session.regenerate(function(){
+        // Store the user's primary key
+        // in the session store to be retrieved,
+        // or in this case the entire user object
+        req.session.user = newUser;
+        res.redirect('/');
+      });
+
         //console.log("\n\n\n**NEW USER CREATED***", newUser);
         //Maybe redirect them? Login them into a session? A bunch of other authentication stuff?
-        res.redirect('/');
+        
+        //Make a post request to /login with their username and raw/unhashed password
+
 
         //Figure out: Login. After creation, log them in.
         //res.send(200, newUser);
