@@ -44,6 +44,10 @@ h1 {
   text-align: center;
 }
 
+.logout {
+float: right;
+}
+
 .navigation li a:hover {
   background-color: #ddd;
 }
