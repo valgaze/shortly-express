@@ -62,7 +62,25 @@ function(req, res) {
 
 app.post('/login',
   function(req,res){
-    console.log("LOGIN INFO", req.body)
+    //Todo: Hash password check
+    var username = req.body.username;
+    var password = req.body.password;
+
+  new User({username: username}).fetch().then(function(found) {
+
+    if (found) {
+      console.log("Terrific that user exists with this info:", found.attributes);
+      if (password === found.attributes.password){
+        res.redirect("/");
+      }else{
+        res.send(200, "Sorry the passwords don't match");
+      }
+    } else {
+      res.send(200,"Sorry, that is not a valid username");
+    }
+  });
+
+
 });
 
 app.post('/signup',
@@ -83,9 +101,12 @@ app.post('/signup',
         password: password,
       })
       .then(function(newUser) {
-        console.log("\n\n\n**NEW USER CREATED***", newUser);
+        //console.log("\n\n\n**NEW USER CREATED***", newUser);
         //Maybe redirect them? Login them into a session? A bunch of other authentication stuff?
-        res.send(200, newUser);
+        res.redirect('/');
+
+        //Figure out: Login. After creation, log them in.
+        //res.send(200, newUser);
       });
     }
   });
