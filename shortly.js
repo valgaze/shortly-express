@@ -10,9 +10,10 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
+var User = require('./app/models/user');
+var Users = require('./app/collections/users');
 
 var app = express();
-
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 app.use(partials());
@@ -28,6 +29,17 @@ function(req, res) {
   res.render('index');
 });
 
+
+app.get('/login', 
+function(req, res) {
+  res.render('login');
+});
+
+app.get('/signup', 
+function(req, res) {
+  res.render('signup');
+});
+
 app.get('/create', 
 function(req, res) {
   res.render('index');
@@ -40,10 +52,50 @@ function(req, res) {
   });
 });
 
+/**TODO: Remove this catastrophically insecure helper**/
+app.get('/users', 
+function(req, res) {
+  Users.reset().fetch().then(function(links) {
+    res.send(200, links.models);
+  });
+});
+
+app.post('/login',
+  function(req,res){
+    console.log("LOGIN INFO", req.body)
+});
+
+app.post('/signup',
+  function(req,res){
+    console.log("THEIR SIGNUP INFO", req.body);
+
+    var username = req.body.username;
+    var password = req.body.password;
+
+  new User({username: username}).fetch().then(function(found) {
+
+    if (found) {
+      console.log("THIS USER ALREADY EXISTS!!", found.attributes);
+      res.send(200, "Sorry, that username is already taken. Please try a different one.");
+    } else {
+     Users.create({
+        username: username,
+        password: password,
+      })
+      .then(function(newUser) {
+        console.log("\n\n\n**NEW USER CREATED***", newUser);
+        //Maybe redirect them? Login them into a session? A bunch of other authentication stuff?
+        res.send(200, newUser);
+      });
+    }
+  });
+
+});
+
+
 app.post('/links', 
 function(req, res) {
   var uri = req.body.url;
-
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
     return res.send(404);
@@ -51,6 +103,7 @@ function(req, res) {
 
   new Link({ url: uri }).fetch().then(function(found) {
     if (found) {
+      console.log("THIS THING ALREADY EXISTS!!", found.attributes);
       res.send(200, found.attributes);
     } else {
       util.getUrlTitle(uri, function(err, title) {
@@ -85,6 +138,7 @@ function(req, res) {
 /************************************************************/
 
 app.get('/*', function(req, res) {
+  console.log("wildcard handler params", req.params[0]);
   new Link({ code: req.params[0] }).fetch().then(function(link) {
     if (!link) {
       res.redirect('/');
