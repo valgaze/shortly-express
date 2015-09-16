@@ -111,9 +111,9 @@ function(req, res) {
   });
 });
 
-app.get('/restricted', restrict, function(req, res){
-  res.send('Wahoo! restricted area, click to <a href="/logout">logout</a>');
-});
+// app.get('/restricted', restrict, function(req, res){
+//   res.send('Wahoo! restricted area, click to <a href="/logout">logout</a>');
+// });
 
 
 // /**TODO: Remove this catastrophically insecure helper**/
