@@ -15,6 +15,12 @@ h1 {
   margin-bottom: 10px;
 }
 
+#logout{
+
+  float:right;
+
+}
+
 .navigation {
   width: 100%;
   height: 40px;
