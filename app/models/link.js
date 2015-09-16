@@ -1,6 +1,7 @@
 var db = require('../config');
 var Click = require('./click');
 var crypto = require('crypto');
+var User = require('./user');
 
 var Link = db.Model.extend({
   tableName: 'urls',
@@ -11,10 +12,13 @@ var Link = db.Model.extend({
   clicks: function() {
     return this.hasMany(Click);
   },
+  users: function(){
+    return this.belongsTo(User, "user_id");
+  },
   initialize: function(){
     this.on('creating', function(model, attrs, options){
       var shasum = crypto.createHash('sha1');
-      shasum.update(model.get('url') + model.get('id'));
+      shasum.update(model.get('url') + model.get('user_id'));
       model.set('code', shasum.digest('hex').slice(0, 5));
     });
   }
