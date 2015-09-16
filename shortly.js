@@ -45,11 +45,7 @@ function restrict(req, res, next) {
 function authenticate(username, password, successCallback, errorCallback) {
   new User({username: username}).fetch().then(function(found) {
     if (found) {
-      console.log("Terrific that user exists with this info:", found.attributes);
         var hashedPassword = hasher(password);
-
-        console.log("\n\n\n***hashedPw:", hashedPassword);
-        console.log("\n\n\n***Pw in database:", found.attributes.password);
 
         if (hashedPassword === found.attributes.password){
           successCallback(found);
@@ -99,6 +95,15 @@ app.get('/logout', function(req, res){
   });
 });
 
+/**Raw dump of ALL links, maybe not performant as database grows**/
+
+app.get('/showDatabase', 
+function(req, res) {
+  Links.reset().fetch().then(function(links) {
+    res.send(200, links.models);
+  });
+});
+
 app.get('/links', 
 function(req, res) {
   Links.reset().fetch().then(function(links) {
@@ -111,13 +116,13 @@ app.get('/restricted', restrict, function(req, res){
 });
 
 
-/**TODO: Remove this catastrophically insecure helper**/
-app.get('/users', restrict,
-function(req, res) {
-  Users.reset().fetch().then(function(links) {
-    res.send(200, links.models);
-  });
-});
+// /**TODO: Remove this catastrophically insecure helper**/
+// app.get('/users', restrict,
+// function(req, res) {
+//   Users.reset().fetch().then(function(links) {
+//     res.send(200, links.models);
+//   });
+// });
 
 app.post('/login',
   function(req,res){
@@ -147,7 +152,6 @@ authenticate(req.body.username, req.body.password, function(user){
 
 app.post('/signup',
   function(req,res){
-    console.log("THEIR SIGNUP INFO", req.body);
 
     var username = req.body.username;
     var password = req.body.password;
@@ -155,7 +159,6 @@ app.post('/signup',
   new User({username: username}).fetch().then(function(found) {
 
     if (found) {
-      console.log("THIS USER ALREADY EXISTS!!", found.attributes);
       res.send(200, "Sorry, that username is already taken. Please try a different one.");
     } else {
       var hashedPassword = hasher(password);
@@ -173,14 +176,7 @@ app.post('/signup',
         res.redirect('/');
       });
 
-        //console.log("\n\n\n**NEW USER CREATED***", newUser);
-        //Maybe redirect them? Login them into a session? A bunch of other authentication stuff?
-        
-        //Make a post request to /login with their username and raw/unhashed password
-
-
-        //Figure out: Login. After creation, log them in.
-        //res.send(200, newUser);
+    
       });
     }
   });
@@ -196,9 +192,9 @@ function(req, res) {
     return res.send(404);
   }
 
-  new Link({ url: uri }).fetch().then(function(found) {
+  var currentUserId = req.session.user.id;
+  new Link({ url: uri, user_id: currentUserId }).fetch().then(function(found) {
     if (found) {
-      console.log("THIS THING ALREADY EXISTS!!", found.attributes);
       res.send(200, found.attributes);
     } else {
       util.getUrlTitle(uri, function(err, title) {
@@ -210,7 +206,9 @@ function(req, res) {
         Links.create({
           url: uri,
           title: title,
-          base_url: req.headers.origin
+          base_url: req.headers.origin,
+          user_id: currentUserId
+
         })
         .then(function(newLink) {
           res.send(200, newLink);
@@ -233,7 +231,6 @@ function(req, res) {
 /************************************************************/
 
 app.get('/*', function(req, res) {
-  console.log("wildcard handler params", req.params[0]);
   new Link({ code: req.params[0] }).fetch().then(function(link) {
     if (!link) {
       res.redirect('/');
